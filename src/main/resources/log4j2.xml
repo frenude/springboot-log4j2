@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Configuration status="OFF" monitorInterval="30">
+    <!--status：是用于指定log4j的级别；-->
+    <!--monitorInterval：是用于指定log4j自动重新检测读取配置内容的间隔时间，单位为秒（s），最小值为5秒。-->
+    <Properties>
+        <!--Properties 属性配置,方便以后复用-->
+        <Property name="LOG_PATH" value="logs"/>
+        <Property name="LOG_PATTERN"
+                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{39} %c{1.}.%M(%L) - %msg%n"/>
+        <Property name="FILE_PATTERN" value="%d{yyMMdd}.%i"/>
+        <Property name="MAIN_FILE_NAME" value="ad-main"/>
+        <Property name="AD_REQUEST_FILE_NAME" value="ad-request"/>
+        <Property name="AD_RESPONSE_FILE_NAME" value="ad-response"/>
+    </Properties>
+    <Appenders>
+        <!--Console节点用于定义输出控制台的Appender。-->
+        <!--name：用于指定Appender的名称;-->
+        <!--target：用于指定输出目标，一般是SYSTEM_OUT或SYSTEM_ERR，默认是SYSTEM_OUT；-->
+        <!--PatternLayout：用于指定输出格式，不设置的话，默认为:%m%n-->
+        <Console name="consoleAppender" target="SYSTEM_OUT" follow="true">
+            <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>
+        </Console>
+        <!--File节点用于将日志输出到指定文件，一般不用该节点，而使用RollingFile节点。-->
+        <!--RollingFile节点用于实现日志文件更动更新的Appender，当满足条件（日志大小、指定时间等）重命名或打包原日志文件进行归档，生成新日志文件用于日志写入。-->
+        <!--RollingRandomAccessFile 性能更好 缓存更大-->
+        <RollingRandomAccessFile name="mainFileAppender"
+                                 fileName="${sys:LOG_PATH}/${sys:MAIN_FILE_NAME}/${sys:MAIN_FILE_NAME}.log"
+                                 filePattern="${sys:LOG_PATH}/${sys:MAIN_FILE_NAME}/${sys:MAIN_FILE_NAME}.log.${FILE_PATTERN}"
+                                 immediateFlush="false" append="true">
+            <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <!--每当文件大小达到500MB时或经过1天 会进行重命名并归档，并生成新的文件 文件格式*.log.%d{yyMMdd}-->
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+            </Policies>
+            <!--当文件个数达到50个的时候会循环覆盖前面已归档的1-50个文件。若不设置该参数，默认为7。-->
+            <DefaultRolloverStrategy max="50">
+                <!--删除策略-->
+                <Delete basePath="${sys:LOG_PATH}/${sys:MAIN_FILE_NAME}">
+                    <IfFileName glob="${sys:MAIN_FILE_NAME}.log.*">
+                        <IfAny>
+                            <IfAccumulatedFileCount exceeds="40"/>
+                            <IfAccumulatedFileSize exceeds="20 GB"/>
+                        </IfAny>
+                    </IfFileName>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
+        <RollingRandomAccessFile name="adRequestFileAppender"
+                                 fileName="${sys:LOG_PATH}/${sys:AD_REQUEST_FILE_NAME}/${sys:AD_REQUEST_FILE_NAME}.log"
+                                 filePattern="${sys:LOG_PATH}/${sys:AD_REQUEST_FILE_NAME}/${sys:AD_REQUEST_FILE_NAME}.log.${FILE_PATTERN}"
+                                 immediateFlush="false" append="true">
+            <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${sys:LOG_PATH}/${sys:AD_REQUEST_FILE_NAME}">
+                    <IfFileName glob="${sys:AD_REQUEST_FILE_NAME}.log.*">
+                        <IfAny>
+                            <IfAccumulatedFileCount exceeds="5"/>
+                            <IfAccumulatedFileSize exceeds="8 GB"/>
+                        </IfAny>
+                    </IfFileName>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
+        <RollingRandomAccessFile name="adResponseFileAppender"
+                                 fileName="${sys:LOG_PATH}/${sys:AD_RESPONSE_FILE_NAME}/${sys:AD_RESPONSE_FILE_NAME}.log"
+                                 filePattern="${sys:LOG_PATH}/${sys:AD_RESPONSE_FILE_NAME}/${sys:AD_RESPONSE_FILE_NAME}.log.${FILE_PATTERN}"
+                                 immediateFlush="false" append="true">
+            <PatternLayout charset="UTF-8" pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${sys:LOG_PATH}/${sys:AD_RESPONSE_FILE_NAME}">
+                    <IfFileName glob="${sys:AD_RESPONSE_FILE_NAME}.log.*">
+                        <IfAny>
+                            <IfAccumulatedFileCount exceeds="5"/>
+                            <IfAccumulatedFileSize exceeds="8 GB"/>
+                        </IfAny>
+                    </IfFileName>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
+    </Appenders>
+    <Loggers>
+        <!--Logger ：用于指定日志的形式，指定不同包的日志级别，level属性表示日志输出级别，name属性用来指定该Logger所适用的类或者类的全路径。子节点AppenderRef用于指定日志输出到哪个Appender，若没有指定，默认集成自Root。-->
+        <!--AsyncLogger 异步Logger 可以采用-->
+        <!--它是 子Logger 是否继承 父Logger 的 输出源（appender） 的标志位。具体说，默认情况下子Logger会继承父Logger的appender，也就是说子Logger会在父Logger的appender里输出。若是additivity设为false，则子Logger只会在自己的appender里输出，而不会在父Logger的appender里输出。-->
+        <Logger name="com.frenude.springlog" level="info" includeLocation="true" additivity="false">
+            <AppenderRef ref="consoleAppender"/>
+            <AppenderRef ref="mainFileAppender"/>
+        </Logger>
+        <!--Root：用于指定项目的根日志，level属性表示日志输出级别，子节点AppenderRef用于指定输出到某个Appender，子节点的ref属性也就是前面的RollingFile中指定的name名称，子节点的level也是日志输出级别。-->
+        <Root level="info" includeLocation="false">
+            <AppenderRef ref="consoleAppender"/>
+            <AppenderRef ref="mainFileAppender"/>
+        </Root>
+        <Logger name="adRequest" level="info" additivity="false">
+            <AppenderRef ref="adRequestFileAppender"/>
+        </Logger>
+        <Logger name="adResponse" level="info" additivity="false">
+            <AppenderRef ref="adResponseFileAppender"/>
+        </Logger>
+    </Loggers>
+</Configuration>
